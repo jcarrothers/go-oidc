@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -94,7 +95,12 @@ type providerJSON struct {
 // The issuer is the URL identifier for the service. For example: "https://accounts.google.com"
 // or "https://login.salesforce.com".
 func NewProvider(ctx context.Context, issuer string) (*Provider, error) {
-	wellKnown := strings.TrimSuffix(issuer, "/") + "/.well-known/openid-configuration"
+	discoveryURL := issuer
+	if checkIssuer, urlErr := url.Parse(discoveryURL); urlErr == nil && checkIssuer.Scheme == "" {
+		checkIssuer.Scheme = "https"
+		discoveryURL = checkIssuer.String()
+	}
+	wellKnown := strings.TrimSuffix(discoveryURL, "/") + "/.well-known/openid-configuration"
 	req, err := http.NewRequest("GET", wellKnown, nil)
 	if err != nil {
 		return nil, err
